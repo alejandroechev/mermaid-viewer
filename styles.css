@@ -55,6 +55,12 @@ body {
     /* Enable horizontal scrolling */
     white-space: nowrap;
     /* Prevent text wrapping */
+    outline: none; /* Remove the default focus outline */
+}
+
+#mermaid-input:focus {
+    border: 1px solid #ddd; /* Keep the same border on focus */
+    box-shadow: none; /* Remove any default focus shadow */
 }
 
 #render-button {
