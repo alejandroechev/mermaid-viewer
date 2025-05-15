@@ -20,15 +20,47 @@
                         A[Start] --> B{Is it working?}
                         B -->|Yes| C[Great!]
                         B -->|No| D[Debug]
-                        D --> B                </textarea>
-                <div class="button-container">
-                    <button id="render-button">Render</button>
+                        D --> B                </textarea>                <div class="button-container">
+                    <div class="left-buttons">
+                        <button id="render-button" title="Render diagram (Ctrl+Enter)">Render</button>
+                        <button id="theme-toggle" title="Toggle theme">🌓</button>
+                        <span class="tooltip-container">
+                            <button class="info-button" title="Show shortcuts">?</button>
+                            <div class="tooltip">
+                                <div class="tooltip-content">
+                                    <strong>Shortcuts:</strong>
+                                    <ul>
+                                        <li>Ctrl+Enter: Render diagram</li>
+                                        <li>Double-click: Reset zoom</li>
+                                        <li>Mouse wheel: Zoom in/out</li>
+                                        <li>Drag: Pan diagram</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </span>
+                        <span class="tooltip-container">
+                            <button class="template-button" title="Insert template">+</button>
+                            <div class="tooltip template-tooltip">
+                                <div class="tooltip-content">
+                                    <strong>Insert template:</strong>
+                                    <ul class="template-list">
+                                        <li><button class="template-item" data-type="flowchart">Flowchart</button></li>
+                                        <li><button class="template-item" data-type="sequence">Sequence</button></li>
+                                        <li><button class="template-item" data-type="classDiagram">Class</button></li>
+                                        <li><button class="template-item" data-type="gantt">Gantt</button></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </span>
+                    </div>
                     <a href="https://mermaid.js.org/intro/syntax-reference.html" target="_blank" class="syntax-link">Syntax reference</a>
                 </div>
-            </div>
-            <div class="output-container">
-                <div class="diagram-container">
+            </div>            <div class="output-container">                <div class="diagram-container">
                     <div id="mermaid-output"></div>
+                    <div class="status-indicator" id="status-indicator"></div>
+                    <div class="diagram-controls">
+                        <button id="copy-svg-button" title="Copy as SVG">Copy SVG</button>
+                    </div>
                 </div>
             </div>
         </div>

@@ -7,6 +7,10 @@ A simple web application that allows you to paste Markdown Mermaid syntax and re
 - Paste Mermaid syntax and render diagrams
 - Interactive zoom and pan functionality
 - Keyboard shortcuts (Ctrl+Enter to render)
+- Auto-save as you type
+- Dark/Light theme toggle
+- Template insertion for common diagram types
+- Copy diagram as SVG
 - Works completely locally
 
 ## How to Use
@@ -25,10 +29,17 @@ A simple web application that allows you to paste Markdown Mermaid syntax and re
 ## Usage Instructions
 
 1. Paste your Mermaid syntax in the left textarea
-2. Click "Render Diagram" or press Ctrl+Enter
+2. Click "Render" or press Ctrl+Enter
 3. Use mouse wheel to zoom in/out
 4. Click and drag on the diagram to pan around
 5. Double-click to reset the view to default
+
+### Additional Features
+
+- Click the "🌓" button to toggle between light and dark themes
+- Click "+" to insert a template for different diagram types
+- Click "?" to view keyboard shortcuts
+- Click "Copy SVG" to copy the diagram as SVG code for use in other applications
 
 ## Example Mermaid Syntax
 
