@@ -66,8 +66,6 @@ body {
     border-radius: 3px;
     font-size: 9px;
     /* Reduced to ~60% of original 14px */
-    align-self: flex-start;
-    margin-bottom: 0;
     height: 24px;
 }
 
@@ -99,4 +97,24 @@ body {
     color: #e74c3c;
     font-size: 10px;
     padding: 10px;
+}
+
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.syntax-link {
+    font-size: 9px;
+    color: #3498db;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.syntax-link:hover {
+    color: #2980b9;
+    text-decoration: underline;
 }
