@@ -25,30 +25,36 @@ body {
 
 .textarea-container {
     flex: 1;
-    max-width: 25%; /* Take only 1/4 of the screen */
+    max-width: 25%;
+    /* Take only 1/4 of the screen */
     display: flex;
     flex-direction: column;
 }
 
 .output-container {
-    flex: 3; /* Take the remaining space */
+    flex: 3;
+    /* Take the remaining space */
     display: flex;
     flex-direction: column;
 }
 
 #mermaid-input {
     width: 100%;
-    height: calc(100% - 50px); /* Take all available height except for button */
+    height: calc(100% - 50px);
+    /* Take all available height except for button */
     padding: 12px;
     font-family: monospace;
     font-size: 10px;
-    resize: none; /* Prevent resizing */
+    resize: none;
+    /* Prevent resizing */
     border: 1px solid #ddd;
     border-radius: 4px;
     margin-bottom: 10px;
     box-sizing: border-box;
-    overflow-x: auto; /* Enable horizontal scrolling */
-    white-space: nowrap; /* Prevent text wrapping */
+    overflow-x: auto;
+    /* Enable horizontal scrolling */
+    white-space: nowrap;
+    /* Prevent text wrapping */
 }
 
 #render-button {
@@ -58,7 +64,8 @@ body {
     border: none;
     cursor: pointer;
     border-radius: 3px;
-    font-size: 9px; /* Reduced to ~60% of original 14px */
+    font-size: 9px;
+    /* Reduced to ~60% of original 14px */
     align-self: flex-start;
     margin-bottom: 0;
     height: 24px;
@@ -84,7 +91,7 @@ body {
     min-height: 100%;
     width: 100%;
     box-sizing: border-box;
-    
+
 }
 
 /* Style for error messages */
