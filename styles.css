@@ -41,12 +41,14 @@ body {
     height: calc(100% - 50px); /* Take all available height except for button */
     padding: 12px;
     font-family: monospace;
-    font-size: 8px; /* Reduced to ~60% of original 13px */
+    font-size: 10px;
     resize: none; /* Prevent resizing */
     border: 1px solid #ddd;
     border-radius: 4px;
     margin-bottom: 10px;
     box-sizing: border-box;
+    overflow-x: auto; /* Enable horizontal scrolling */
+    white-space: nowrap; /* Prevent text wrapping */
 }
 
 #render-button {
