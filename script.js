@@ -7,18 +7,39 @@ document.addEventListener('DOMContentLoaded', function() {
         
     });
     
+    // Local storage key for storing diagram
+    const STORAGE_KEY = 'mermaid-diagram-content';
+    
     // Get DOM elements
     const inputTextarea = document.getElementById('mermaid-input');
     const renderButton = document.getElementById('render-button');
     const outputDiv = document.getElementById('mermaid-output');
     const diagramContainer = document.querySelector('.diagram-container');
 
-    // Panzoom instance
-    let panzoomInstance;
+    // Load saved diagram from local storage if available
+    function loadFromLocalStorage() {
+        const savedDiagram = localStorage.getItem(STORAGE_KEY);
+        if (savedDiagram) {
+            inputTextarea.value = savedDiagram;
+            return true;
+        }
+        return false;
+    }
+    
+    // Save diagram to local storage
+    function saveToLocalStorage(diagram) {
+        if (diagram && diagram.trim() !== '') {
+            localStorage.setItem(STORAGE_KEY, diagram);
+        }
+    }
 
-    // Function to render the diagram
+    // Panzoom instance
+    let panzoomInstance;    // Function to render the diagram
     async function renderDiagram() {
         const mermaidCode = inputTextarea.value.trim();
+        
+        // Save to local storage whenever we render
+        saveToLocalStorage(mermaidCode);
         
         if (!mermaidCode) {
             outputDiv.innerHTML = '<p class="error-message">Please enter some Mermaid markdown.</p>';
@@ -55,9 +76,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const delta = event.deltaY;
                 if (delta > 0) {
-                    panzoomInstance.zoomOut(0.1, { animate: false });
+                    panzoomInstance.zoomOut(0.01, { animate: false });
                 } else {
-                    panzoomInstance.zoomIn(0.1, { animate: false });
+                    panzoomInstance.zoomIn(0.01, { animate: false });
                 }
             });
             
@@ -66,14 +87,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 panzoomInstance.reset();
             });
             
+            // Save diagram to local storage
+            saveToLocalStorage(mermaidCode);
+            
         } catch (error) {
             console.error('Error rendering diagram:', error);
             outputDiv.innerHTML = `<p class="error-message">Error rendering diagram: ${error.message}</p>`;
         }
-    }
-
-    // Render initial diagram
-    renderDiagram();
+    }    // Render initial diagram - always render regardless of whether loaded from localStorage or default
+    loadFromLocalStorage(); // First try to load from localStorage
+    renderDiagram();        // Then render the diagram (either loaded or default)
 
     // Render on button click
     renderButton.addEventListener('click', renderDiagram);    // Keyboard shortcuts
