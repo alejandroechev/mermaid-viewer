@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
             // Initialize panzoom on the output div
             panzoomInstance = Panzoom(outputDiv, {
                 canvas: true,
-                step: 0.1
+                step: 0.06
             });
             // Enable mouse wheel zooming when over the diagram - now without requiring Ctrl key
             diagramContainer.addEventListener('wheel', function (event) {
