@@ -135,9 +135,9 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
 
                 const delta = event.deltaY;
                 if (delta > 0) {
-                    panzoomInstance.zoomOut(0.01, { animate: false });
+                    panzoomInstance.zoomOut(0.005, { animate: false });
                 } else {
-                    panzoomInstance.zoomIn(0.01, { animate: false });
+                    panzoomInstance.zoomIn(0.005, { animate: false });
                 }
             });
 
