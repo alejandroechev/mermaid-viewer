@@ -1,6 +1,6 @@
 # Mermaid Diagram Renderer
 
-A simple web application that allows you to paste Markdown Mermaid syntax and renders the diagram with zooming and panning capabilities.
+A desktop and web application for rendering Mermaid diagrams with zooming, panning, and CLI support. Built with Tauri for native desktop experience.
 
 ## Features
 
@@ -11,13 +11,50 @@ A simple web application that allows you to paste Markdown Mermaid syntax and re
 - Dark/Light theme toggle
 - Template insertion for common diagram types
 - Copy diagram as SVG
-- Works completely locally
+- **Desktop app with CLI support** — open diagrams from the terminal
+- Works completely locally (offline)
 
-## How to Use
+## Desktop App (Tauri)
+
+### Installation
+
+#### From source
+```bash
+npm install
+npx tauri build
+```
+
+The built binary is at `src-tauri/target/release/mermaid-viewer.exe`.
+
+To make it available system-wide, copy to a PATH directory:
+```bash
+copy src-tauri\target\release\mermaid-viewer.exe %USERPROFILE%\.cargo\bin\
+```
+
+### CLI Usage
+
+Open with a raw mermaid string:
+```bash
+mermaid-viewer "graph TD; A[Start]-->B[End]"
+```
+
+Open with a `.mmd` file:
+```bash
+mermaid-viewer diagram.mmd
+```
+
+Open without arguments (loads last saved diagram):
+```bash
+mermaid-viewer
+```
+
+The tool auto-detects whether the argument is a file path or a raw mermaid string.
+
+## Web App
 
 ### Option 1: Open the HTML file directly
 
-1. Simply open the `index.html` file in a modern browser (Chrome, Firefox, Edge, etc.)
+Simply open the `index.html` file in a modern browser (Chrome, Firefox, Edge, etc.)
 
 ### Option 2: Use the Node.js server
 
@@ -51,56 +88,20 @@ graph TD
     D --> B
 ```
 
-## More Examples
+## Architecture
 
-### Flowchart
+See [docs/system-diagram.md](docs/system-diagram.md) for the system architecture diagram.
 
-```
-graph LR
-    A[Hard edge] -->|Link text| B(Round edge)
-    B --> C{Decision}
-    C -->|One| D[Result one]
-    C -->|Two| E[Result two]
-```
+## Development
 
-### Sequence Diagram
+### Prerequisites
+- Node.js 18+
+- Rust toolchain (for Tauri desktop app)
+- npm
 
-```
-sequenceDiagram
-    participant Alice
-    participant Bob
-    Alice->>John: Hello John, how are you?
-    loop Healthcheck
-        John->>John: Fight against hypochondria
-    end
-    Note right of John: Rational thoughts <br/>prevail!
-    John-->>Alice: Great!
-    John->>Bob: How about you?
-    Bob-->>John: Jolly good!
-```
-
-### Class Diagram
-
-```
-classDiagram
-    Animal <|-- Duck
-    Animal <|-- Fish
-    Animal <|-- Zebra
-    Animal : +int age
-    Animal : +String gender
-    Animal: +isMammal()
-    Animal: +mate()
-    class Duck{
-        +String beakColor
-        +swim()
-        +quack()
-    }
-    class Fish{
-        -int sizeInFeet
-        -canEat()
-    }
-    class Zebra{
-        +bool is_wild
-        +run()
-    }
+### Building
+```bash
+npm install
+npx tauri build      # Desktop app
+node server.js       # Web server
 ```

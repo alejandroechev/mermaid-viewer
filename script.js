@@ -50,6 +50,23 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
         }
     }
 
+    // Check if running inside Tauri and load initial diagram from CLI args
+    async function loadFromTauriCli() {
+        if (window.__TAURI_INTERNALS__) {
+            try {
+                const { invoke } = window.__TAURI_INTERNALS__;
+                const diagram = await invoke('get_initial_diagram');
+                if (diagram) {
+                    inputTextarea.value = diagram;
+                    return true;
+                }
+            } catch (e) {
+                console.log('Not running in Tauri or no CLI args:', e);
+            }
+        }
+        return false;
+    }
+
     // Function to copy SVG to clipboard
     function copySvgToClipboard() {
         // Find the SVG element in the output
@@ -162,9 +179,13 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
             // Show error status
             statusIndicator.className = 'status-indicator error';
         }
-    }    // Render initial diagram - always render regardless of whether loaded from localStorage or default
-    loadFromLocalStorage(); // First try to load from localStorage
-    renderDiagram();        // Then render the diagram (either loaded or default)
+    }    // Render initial diagram - try Tauri CLI args first, then localStorage, then default
+    loadFromTauriCli().then(loadedFromCli => {
+        if (!loadedFromCli) {
+            loadFromLocalStorage();
+        }
+        renderDiagram();
+    });
 
     // Render on button click
     renderButton.addEventListener('click', renderDiagram);
