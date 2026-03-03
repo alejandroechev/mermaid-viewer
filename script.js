@@ -366,30 +366,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
         // Show the toggle button in Tauri mode
         savedPanelToggle.style.display = 'flex';
 
-        // Use Tauri invoke to interact with the SQL plugin
-        try {
-            // Load/open the database first
-            await window.__TAURI_INTERNALS__.invoke('plugin:sql|load', {
-                db: 'sqlite:diagrams.db'
-            });
-            db = {
-                async select(query, bindings) {
-                    return await window.__TAURI_INTERNALS__.invoke('plugin:sql|select', {
-                        db: 'sqlite:diagrams.db', query, values: bindings || []
-                    });
-                },
-                async execute(query, bindings) {
-                    return await window.__TAURI_INTERNALS__.invoke('plugin:sql|execute', {
-                        db: 'sqlite:diagrams.db', query, values: bindings || []
-                    });
-                }
-            };
-        } catch (e) {
-            console.error('Failed to initialize SQL database:', e);
-            return;
-        }
-
-        // Toggle panel visibility
+        // Attach UI event listeners regardless of DB init success
         savedPanelToggle.addEventListener('click', () => {
             savedPanel.classList.toggle('visible');
             savedPanelToggle.classList.toggle('active');
@@ -398,16 +375,34 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
             }
         });
 
-        // Save button
         saveDiagramButton.addEventListener('click', saveDiagram);
 
-        // Save on Enter in the name input
         diagramNameInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') saveDiagram();
         });
 
-        // Load the saved list initially
-        refreshSavedList();
+        // Initialize the SQL database
+        try {
+            // load returns the resolved DB path — must use it for all subsequent calls
+            const resolvedDb = await window.__TAURI_INTERNALS__.invoke('plugin:sql|load', {
+                db: 'sqlite:diagrams.db'
+            });
+            db = {
+                async select(query, bindings) {
+                    return await window.__TAURI_INTERNALS__.invoke('plugin:sql|select', {
+                        db: resolvedDb, query, values: bindings || []
+                    });
+                },
+                async execute(query, bindings) {
+                    return await window.__TAURI_INTERNALS__.invoke('plugin:sql|execute', {
+                        db: resolvedDb, query, values: bindings || []
+                    });
+                }
+            };
+            refreshSavedList();
+        } catch (e) {
+            console.error('Failed to initialize SQL database:', e);
+        }
     }
 
     async function saveDiagram() {
