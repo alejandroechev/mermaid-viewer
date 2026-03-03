@@ -1,4 +1,5 @@
 use std::sync::Mutex;
+use tauri_plugin_sql::{Migration, MigrationKind};
 
 // Holds the initial diagram content passed via CLI arguments
 pub struct InitialDiagram(pub Mutex<Option<String>>);
@@ -20,7 +21,25 @@ pub fn run() {
         }
     });
 
+    let migrations = vec![Migration {
+        version: 1,
+        description: "create diagrams table",
+        sql: "CREATE TABLE IF NOT EXISTS diagrams (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL UNIQUE,
+            content TEXT NOT NULL,
+            created_at TEXT DEFAULT (datetime('now')),
+            updated_at TEXT DEFAULT (datetime('now'))
+        )",
+        kind: MigrationKind::Up,
+    }];
+
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_sql::Builder::default()
+                .add_migrations("sqlite:diagrams.db", migrations)
+                .build(),
+        )
         .manage(InitialDiagram(Mutex::new(diagram_content)))
         .invoke_handler(tauri::generate_handler![get_initial_diagram])
         .run(tauri::generate_context!())

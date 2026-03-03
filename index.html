@@ -15,7 +15,19 @@
 
 <body>
     <div class="container">
-        <div class="editor-section">            <div class="textarea-container">                <textarea id="mermaid-input" placeholder="Paste Mermaid markdown here..." spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" data-gramm="false">
+        <div class="editor-section">
+            <!-- Saved diagrams side panel (Tauri only) -->
+            <div class="saved-panel" id="saved-panel">
+                <div class="saved-panel-header">
+                    <strong>Diagramas guardados</strong>
+                </div>
+                <div class="save-form">
+                    <input type="text" id="diagram-name-input" placeholder="Nombre del diagrama..." />
+                    <button id="save-diagram-button" title="Guardar diagrama">💾</button>
+                </div>
+                <div class="saved-list" id="saved-list"></div>
+            </div>
+            <div class="textarea-container">                <textarea id="mermaid-input" placeholder="Paste Mermaid markdown here..." spellcheck="false" autocorrect="off" autocapitalize="off" autocomplete="off" data-gramm="false">
                     graph TD
                         A[Start] --> B{Is it working?}
                         B -->|Yes| C[Great!]
@@ -23,6 +35,7 @@
                         D --> B                </textarea>                <div class="button-container">
                     <div class="left-buttons">
                         <button id="render-button" title="Render diagram (Ctrl+Enter)">Render</button>
+                        <button id="saved-panel-toggle" title="Diagramas guardados" style="display:none;">📁</button>
                         <button id="theme-toggle" title="Toggle theme">🌓</button>
                         <span class="tooltip-container">
                             <button class="info-button" title="Show shortcuts">?</button>
@@ -31,6 +44,7 @@
                                     <strong>Shortcuts:</strong>
                                     <ul>
                                         <li>Ctrl+Enter: Render diagram</li>
+                                        <li>Ctrl+S: Save diagram</li>
                                         <li>Double-click: Reset zoom</li>
                                         <li>Mouse wheel: Zoom in/out</li>
                                         <li>Drag: Pan diagram</li>

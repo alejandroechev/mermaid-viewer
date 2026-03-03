@@ -33,6 +33,17 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
     // Add copy button reference
     const copyButton = document.getElementById('copy-svg-button');
 
+    // Saved diagrams panel elements
+    const savedPanel = document.getElementById('saved-panel');
+    const savedPanelToggle = document.getElementById('saved-panel-toggle');
+    const savedList = document.getElementById('saved-list');
+    const diagramNameInput = document.getElementById('diagram-name-input');
+    const saveDiagramButton = document.getElementById('save-diagram-button');
+
+    // Track currently loaded diagram
+    let currentDiagramId = null;
+    let currentDiagramName = null;
+    let db = null; // SQLite database handle
     // Load saved diagram from local storage if available
     function loadFromLocalStorage() {
         const savedDiagram = localStorage.getItem(STORAGE_KEY);
@@ -347,4 +358,187 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
             }
         });
     });
+
+    // ===== Saved Diagrams (Tauri + SQLite only) =====
+    async function initSavedDiagrams() {
+        if (!window.__TAURI_INTERNALS__) return;
+
+        // Show the toggle button in Tauri mode
+        savedPanelToggle.style.display = 'flex';
+
+        // Use Tauri invoke to interact with the SQL plugin
+        try {
+            // Load/open the database first
+            await window.__TAURI_INTERNALS__.invoke('plugin:sql|load', {
+                db: 'sqlite:diagrams.db'
+            });
+            db = {
+                async select(query, bindings) {
+                    return await window.__TAURI_INTERNALS__.invoke('plugin:sql|select', {
+                        db: 'sqlite:diagrams.db', query, values: bindings || []
+                    });
+                },
+                async execute(query, bindings) {
+                    return await window.__TAURI_INTERNALS__.invoke('plugin:sql|execute', {
+                        db: 'sqlite:diagrams.db', query, values: bindings || []
+                    });
+                }
+            };
+        } catch (e) {
+            console.error('Failed to initialize SQL database:', e);
+            return;
+        }
+
+        // Toggle panel visibility
+        savedPanelToggle.addEventListener('click', () => {
+            savedPanel.classList.toggle('visible');
+            savedPanelToggle.classList.toggle('active');
+            if (savedPanel.classList.contains('visible')) {
+                refreshSavedList();
+            }
+        });
+
+        // Save button
+        saveDiagramButton.addEventListener('click', saveDiagram);
+
+        // Save on Enter in the name input
+        diagramNameInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') saveDiagram();
+        });
+
+        // Load the saved list initially
+        refreshSavedList();
+    }
+
+    async function saveDiagram() {
+        if (!db) return;
+        const name = diagramNameInput.value.trim();
+        const content = inputTextarea.value.trim();
+
+        if (!name) {
+            diagramNameInput.focus();
+            return;
+        }
+        if (!content) return;
+
+        try {
+            if (currentDiagramId && currentDiagramName === name) {
+                // Update existing diagram
+                await db.execute(
+                    "UPDATE diagrams SET content = ?, updated_at = datetime('now') WHERE id = ?",
+                    [content, currentDiagramId]
+                );
+            } else {
+                // Insert or replace by name
+                await db.execute(
+                    "INSERT INTO diagrams (name, content) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET content = excluded.content, updated_at = datetime('now')",
+                    [name, content]
+                );
+                // Fetch the id of the saved diagram
+                const rows = await db.select("SELECT id FROM diagrams WHERE name = ?", [name]);
+                if (rows.length > 0) {
+                    currentDiagramId = rows[0].id;
+                    currentDiagramName = name;
+                }
+            }
+            refreshSavedList();
+            statusIndicator.className = 'status-indicator success';
+            setTimeout(() => { statusIndicator.className = 'status-indicator'; }, 1000);
+        } catch (e) {
+            console.error('Failed to save diagram:', e);
+            statusIndicator.className = 'status-indicator error';
+        }
+    }
+
+    async function loadDiagram(id) {
+        if (!db) return;
+        try {
+            const rows = await db.select("SELECT * FROM diagrams WHERE id = ?", [id]);
+            if (rows.length > 0) {
+                const diagram = rows[0];
+                inputTextarea.value = diagram.content;
+                diagramNameInput.value = diagram.name;
+                currentDiagramId = diagram.id;
+                currentDiagramName = diagram.name;
+                renderDiagram();
+                refreshSavedList();
+            }
+        } catch (e) {
+            console.error('Failed to load diagram:', e);
+        }
+    }
+
+    async function deleteDiagram(id) {
+        if (!db) return;
+        try {
+            await db.execute("DELETE FROM diagrams WHERE id = ?", [id]);
+            if (currentDiagramId === id) {
+                currentDiagramId = null;
+                currentDiagramName = null;
+                diagramNameInput.value = '';
+            }
+            refreshSavedList();
+        } catch (e) {
+            console.error('Failed to delete diagram:', e);
+        }
+    }
+
+    async function refreshSavedList() {
+        if (!db) return;
+        try {
+            const rows = await db.select("SELECT id, name, updated_at FROM diagrams ORDER BY updated_at DESC");
+            savedList.innerHTML = '';
+            for (const row of rows) {
+                const item = document.createElement('div');
+                item.className = 'saved-item' + (row.id === currentDiagramId ? ' active' : '');
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'saved-item-name';
+                nameSpan.textContent = row.name;
+                nameSpan.title = row.name;
+
+                const dateSpan = document.createElement('span');
+                dateSpan.className = 'saved-item-date';
+                dateSpan.textContent = row.updated_at ? row.updated_at.substring(5, 16) : '';
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.className = 'saved-item-delete';
+                deleteBtn.textContent = '🗑';
+                deleteBtn.title = 'Eliminar';
+                deleteBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    deleteDiagram(row.id);
+                });
+
+                item.addEventListener('click', () => loadDiagram(row.id));
+                item.appendChild(nameSpan);
+                item.appendChild(dateSpan);
+                item.appendChild(deleteBtn);
+                savedList.appendChild(item);
+            }
+        } catch (e) {
+            console.error('Failed to refresh saved list:', e);
+        }
+    }
+
+    // Ctrl+S to save
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 's' && (event.ctrlKey || event.metaKey)) {
+            event.preventDefault();
+            if (!db) return;
+            if (!savedPanel.classList.contains('visible')) {
+                savedPanel.classList.add('visible');
+                savedPanelToggle.classList.add('active');
+            }
+            if (currentDiagramName) {
+                diagramNameInput.value = currentDiagramName;
+                saveDiagram();
+            } else {
+                diagramNameInput.focus();
+            }
+        }
+    });
+
+    // Initialize saved diagrams if in Tauri
+    initSavedDiagrams();
 });

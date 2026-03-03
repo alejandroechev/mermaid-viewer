@@ -6,11 +6,12 @@ A desktop and web application for rendering Mermaid diagrams with zooming, panni
 
 - Paste Mermaid syntax and render diagrams
 - Interactive zoom and pan functionality
-- Keyboard shortcuts (Ctrl+Enter to render)
+- Keyboard shortcuts (Ctrl+Enter to render, Ctrl+S to save)
 - Auto-save as you type
 - Dark/Light theme toggle
 - Template insertion for common diagram types
 - Copy diagram as SVG
+- **Save/load diagrams** — store and manage multiple diagrams in a local SQLite database (desktop only)
 - **Desktop app with CLI support** — open diagrams from the terminal
 - Works completely locally (offline)
 
