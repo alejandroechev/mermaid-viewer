@@ -384,6 +384,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
             savedPanelToggle.classList.toggle('active');
             if (savedPanel.classList.contains('visible')) {
                 refreshSavedList();
+                refreshLabelEditor();
             }
         });
 
@@ -422,7 +423,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
                 }
             };
             // Enable foreign keys for CASCADE support
-            await db.execute("PRAGMA foreign_keys = ON");
+            try { await db.execute("PRAGMA foreign_keys = ON"); } catch (_) { /* PRAGMA may not be supported via plugin */ }
             refreshSavedList();
             refreshFilterBar();
         } catch (e) {
@@ -533,10 +534,15 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
     // ===== Label Editor (shows labels for the current diagram) =====
     async function refreshLabelEditor() {
         if (!currentDiagramId) {
-            labelEditor.style.display = 'none';
+            labelEditor.style.display = 'block';
+            labelEditorChips.innerHTML = '<span style="color:#999;font-size:8px;">Guarda un diagrama para agregar etiquetas</span>';
+            labelAddInput.disabled = true;
+            labelAddInput.placeholder = '';
             return;
         }
         labelEditor.style.display = 'block';
+        labelAddInput.disabled = false;
+        labelAddInput.placeholder = 'Nueva etiqueta...';
         const labels = await getDiagramLabels(currentDiagramId);
         labelEditorChips.innerHTML = '';
         labels.forEach(label => {

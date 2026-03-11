@@ -36,19 +36,24 @@ pub fn run() {
         },
         Migration {
             version: 2,
-            description: "create labels and diagram_labels tables",
+            description: "create labels table",
             sql: "CREATE TABLE IF NOT EXISTS labels (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL UNIQUE,
                 color TEXT NOT NULL DEFAULT '#3498db'
-            );
-            CREATE TABLE IF NOT EXISTS diagram_labels (
+            )",
+            kind: MigrationKind::Up,
+        },
+        Migration {
+            version: 3,
+            description: "create diagram_labels junction table",
+            sql: "CREATE TABLE IF NOT EXISTS diagram_labels (
                 diagram_id INTEGER NOT NULL,
                 label_id INTEGER NOT NULL,
                 PRIMARY KEY (diagram_id, label_id),
                 FOREIGN KEY (diagram_id) REFERENCES diagrams(id) ON DELETE CASCADE,
                 FOREIGN KEY (label_id) REFERENCES labels(id) ON DELETE CASCADE
-            );",
+            )",
             kind: MigrationKind::Up,
         },
     ];
