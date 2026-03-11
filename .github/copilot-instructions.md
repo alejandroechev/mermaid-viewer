@@ -88,6 +88,9 @@ Before running `git commit`, mentally verify:
 - [ ] System diagram updated (if architecture changed)?
 - [ ] ADR written (if major design decision)?
 
+### Post-Feature Build
+- **Always build the Tauri executable** after implementing a new feature. Run `npx tauri build` to produce the updated `.exe` and installers. The feature is not considered complete until the desktop binary is built successfully.
+
 ### Deployment
 - **CI/CD** is handled by GitHub Actions (`.github/workflows/ci-cd.yml`). Push to `master` triggers: TypeScript check → unit tests with coverage → E2E tests → build → deploy to Vercel.
 - **Vercel auto-deploy is disabled** (`vercel.json` → `github.enabled: false`). Deployments ONLY happen through the GitHub Actions pipeline after all tests pass.
