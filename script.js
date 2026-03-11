@@ -40,10 +40,22 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
     const diagramNameInput = document.getElementById('diagram-name-input');
     const saveDiagramButton = document.getElementById('save-diagram-button');
 
+    // Label elements
+    const labelEditor = document.getElementById('label-editor');
+    const labelEditorChips = document.getElementById('label-editor-chips');
+    const labelAddInput = document.getElementById('label-add-input');
+    const labelColorPicker = document.getElementById('label-color-picker');
+    const labelFilterBar = document.getElementById('label-filter-bar');
+
     // Track currently loaded diagram
     let currentDiagramId = null;
     let currentDiagramName = null;
     let db = null; // SQLite database handle
+
+    // Label state
+    const LABEL_COLORS = ['#3498db','#2ecc71','#e74c3c','#f39c12','#9b59b6','#1abc9c','#e67e22','#34495e'];
+    let selectedLabelColor = LABEL_COLORS[0];
+    let activeFilterLabelIds = new Set();
     // Load saved diagram from local storage if available
     function loadFromLocalStorage() {
         const savedDiagram = localStorage.getItem(STORAGE_KEY);
@@ -381,9 +393,19 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
             if (e.key === 'Enter') saveDiagram();
         });
 
+        // Initialize color picker swatches
+        initColorPicker();
+
+        // Label add input: Enter to add label to current diagram
+        labelAddInput.addEventListener('keydown', async (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                await addLabelToCurrentDiagram();
+            }
+        });
+
         // Initialize the SQL database
         try {
-            // load returns the resolved DB path — must use it for all subsequent calls
             const resolvedDb = await window.__TAURI_INTERNALS__.invoke('plugin:sql|load', {
                 db: 'sqlite:diagrams.db'
             });
@@ -399,12 +421,193 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
                     });
                 }
             };
+            // Enable foreign keys for CASCADE support
+            await db.execute("PRAGMA foreign_keys = ON");
             refreshSavedList();
+            refreshFilterBar();
         } catch (e) {
             console.error('Failed to initialize SQL database:', e);
         }
     }
 
+    function initColorPicker() {
+        labelColorPicker.innerHTML = '';
+        LABEL_COLORS.forEach(color => {
+            const swatch = document.createElement('div');
+            swatch.className = 'label-color-swatch' + (color === selectedLabelColor ? ' selected' : '');
+            swatch.style.backgroundColor = color;
+            swatch.title = color;
+            swatch.addEventListener('click', () => {
+                selectedLabelColor = color;
+                labelColorPicker.querySelectorAll('.label-color-swatch').forEach(s => s.classList.remove('selected'));
+                swatch.classList.add('selected');
+            });
+            labelColorPicker.appendChild(swatch);
+        });
+    }
+
+    // ===== Label CRUD =====
+    async function createLabel(name, color) {
+        if (!db) return null;
+        const trimmed = name.trim().toLowerCase();
+        if (!trimmed) return null;
+        try {
+            // Try to get existing label first
+            const existing = await db.select("SELECT * FROM labels WHERE name = ?", [trimmed]);
+            if (existing.length > 0) return existing[0];
+            await db.execute("INSERT INTO labels (name, color) VALUES (?, ?)", [trimmed, color]);
+            const rows = await db.select("SELECT * FROM labels WHERE name = ?", [trimmed]);
+            return rows.length > 0 ? rows[0] : null;
+        } catch (e) {
+            console.error('Failed to create label:', e);
+            return null;
+        }
+    }
+
+    async function getAllLabels() {
+        if (!db) return [];
+        try {
+            return await db.select("SELECT * FROM labels ORDER BY name");
+        } catch (e) {
+            console.error('Failed to get labels:', e);
+            return [];
+        }
+    }
+
+    async function getDiagramLabels(diagramId) {
+        if (!db) return [];
+        try {
+            return await db.select(
+                "SELECT l.* FROM labels l INNER JOIN diagram_labels dl ON l.id = dl.label_id WHERE dl.diagram_id = ? ORDER BY l.name",
+                [diagramId]
+            );
+        } catch (e) {
+            console.error('Failed to get diagram labels:', e);
+            return [];
+        }
+    }
+
+    async function addLabelToDiagram(diagramId, labelId) {
+        if (!db) return;
+        try {
+            await db.execute(
+                "INSERT OR IGNORE INTO diagram_labels (diagram_id, label_id) VALUES (?, ?)",
+                [diagramId, labelId]
+            );
+        } catch (e) {
+            console.error('Failed to add label to diagram:', e);
+        }
+    }
+
+    async function removeLabelFromDiagram(diagramId, labelId) {
+        if (!db) return;
+        try {
+            await db.execute(
+                "DELETE FROM diagram_labels WHERE diagram_id = ? AND label_id = ?",
+                [diagramId, labelId]
+            );
+            // Clean up orphan labels (labels not used by any diagram)
+            await db.execute(
+                "DELETE FROM labels WHERE id = ? AND NOT EXISTS (SELECT 1 FROM diagram_labels WHERE label_id = ?)",
+                [labelId, labelId]
+            );
+        } catch (e) {
+            console.error('Failed to remove label from diagram:', e);
+        }
+    }
+
+    async function addLabelToCurrentDiagram() {
+        if (!currentDiagramId) return;
+        const name = labelAddInput.value.trim();
+        if (!name) return;
+        const label = await createLabel(name, selectedLabelColor);
+        if (label) {
+            await addLabelToDiagram(currentDiagramId, label.id);
+            labelAddInput.value = '';
+            refreshLabelEditor();
+            refreshSavedList();
+            refreshFilterBar();
+        }
+    }
+
+    // ===== Label Editor (shows labels for the current diagram) =====
+    async function refreshLabelEditor() {
+        if (!currentDiagramId) {
+            labelEditor.style.display = 'none';
+            return;
+        }
+        labelEditor.style.display = 'block';
+        const labels = await getDiagramLabels(currentDiagramId);
+        labelEditorChips.innerHTML = '';
+        labels.forEach(label => {
+            const chip = document.createElement('span');
+            chip.className = 'label-chip';
+            chip.style.backgroundColor = label.color;
+            chip.textContent = label.name;
+            chip.title = label.name;
+
+            const removeBtn = document.createElement('button');
+            removeBtn.className = 'label-chip-remove';
+            removeBtn.textContent = '×';
+            removeBtn.title = 'Quitar etiqueta';
+            removeBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await removeLabelFromDiagram(currentDiagramId, label.id);
+                refreshLabelEditor();
+                refreshSavedList();
+                refreshFilterBar();
+            });
+            chip.appendChild(removeBtn);
+            labelEditorChips.appendChild(chip);
+        });
+    }
+
+    // ===== Filter Bar =====
+    async function refreshFilterBar() {
+        if (!db) return;
+        const allLabels = await getAllLabels();
+        labelFilterBar.innerHTML = '';
+
+        if (allLabels.length === 0) {
+            labelFilterBar.classList.remove('visible');
+            return;
+        }
+
+        labelFilterBar.classList.add('visible');
+
+        allLabels.forEach(label => {
+            const chip = document.createElement('span');
+            chip.className = 'label-filter-chip' + (activeFilterLabelIds.has(label.id) ? ' active' : '');
+            chip.style.backgroundColor = label.color;
+            chip.textContent = label.name;
+            chip.title = label.name;
+            chip.addEventListener('click', () => {
+                if (activeFilterLabelIds.has(label.id)) {
+                    activeFilterLabelIds.delete(label.id);
+                } else {
+                    activeFilterLabelIds.add(label.id);
+                }
+                refreshFilterBar();
+                refreshSavedList();
+            });
+            labelFilterBar.appendChild(chip);
+        });
+
+        if (activeFilterLabelIds.size > 0) {
+            const clearBtn = document.createElement('button');
+            clearBtn.className = 'label-filter-clear';
+            clearBtn.textContent = '✕';
+            clearBtn.title = 'Limpiar filtros';
+            clearBtn.addEventListener('click', () => {
+                activeFilterLabelIds.clear();
+                refreshFilterBar();
+                refreshSavedList();
+            });
+            labelFilterBar.appendChild(clearBtn);
+        }
+    }
+
+    // ===== Save / Load / Delete / Refresh =====
     async function saveDiagram() {
         if (!db) return;
         const name = diagramNameInput.value.trim();
@@ -418,18 +621,15 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
 
         try {
             if (currentDiagramId && currentDiagramName === name) {
-                // Update existing diagram
                 await db.execute(
                     "UPDATE diagrams SET content = ?, updated_at = datetime('now') WHERE id = ?",
                     [content, currentDiagramId]
                 );
             } else {
-                // Insert or replace by name
                 await db.execute(
                     "INSERT INTO diagrams (name, content) VALUES (?, ?) ON CONFLICT(name) DO UPDATE SET content = excluded.content, updated_at = datetime('now')",
                     [name, content]
                 );
-                // Fetch the id of the saved diagram
                 const rows = await db.select("SELECT id FROM diagrams WHERE name = ?", [name]);
                 if (rows.length > 0) {
                     currentDiagramId = rows[0].id;
@@ -437,6 +637,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
                 }
             }
             refreshSavedList();
+            refreshLabelEditor();
             statusIndicator.className = 'status-indicator success';
             setTimeout(() => { statusIndicator.className = 'status-indicator'; }, 1000);
         } catch (e) {
@@ -457,6 +658,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
                 currentDiagramName = diagram.name;
                 renderDiagram();
                 refreshSavedList();
+                refreshLabelEditor();
             }
         } catch (e) {
             console.error('Failed to load diagram:', e);
@@ -471,8 +673,14 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
                 currentDiagramId = null;
                 currentDiagramName = null;
                 diagramNameInput.value = '';
+                labelEditor.style.display = 'none';
             }
+            // Clean up orphan labels
+            await db.execute(
+                "DELETE FROM labels WHERE NOT EXISTS (SELECT 1 FROM diagram_labels WHERE label_id = labels.id)"
+            );
             refreshSavedList();
+            refreshFilterBar();
         } catch (e) {
             console.error('Failed to delete diagram:', e);
         }
@@ -481,11 +689,42 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
     async function refreshSavedList() {
         if (!db) return;
         try {
-            const rows = await db.select("SELECT id, name, updated_at FROM diagrams ORDER BY updated_at DESC");
+            let diagrams;
+            if (activeFilterLabelIds.size > 0) {
+                // Filter: show diagrams that have ANY of the selected labels
+                const placeholders = Array.from(activeFilterLabelIds).map(() => '?').join(',');
+                diagrams = await db.select(
+                    `SELECT DISTINCT d.id, d.name, d.updated_at FROM diagrams d
+                     INNER JOIN diagram_labels dl ON d.id = dl.diagram_id
+                     WHERE dl.label_id IN (${placeholders})
+                     ORDER BY d.updated_at DESC`,
+                    Array.from(activeFilterLabelIds)
+                );
+            } else {
+                diagrams = await db.select("SELECT id, name, updated_at FROM diagrams ORDER BY updated_at DESC");
+            }
+
+            // Fetch all diagram-label associations in one query for efficiency
+            const allDiagramLabels = await db.select(
+                "SELECT dl.diagram_id, l.id as label_id, l.name, l.color FROM diagram_labels dl INNER JOIN labels l ON dl.label_id = l.id ORDER BY l.name"
+            );
+            // Group labels by diagram_id
+            const labelsByDiagram = {};
+            for (const dl of allDiagramLabels) {
+                if (!labelsByDiagram[dl.diagram_id]) labelsByDiagram[dl.diagram_id] = [];
+                labelsByDiagram[dl.diagram_id].push(dl);
+            }
+
             savedList.innerHTML = '';
-            for (const row of rows) {
+            for (const row of diagrams) {
                 const item = document.createElement('div');
                 item.className = 'saved-item' + (row.id === currentDiagramId ? ' active' : '');
+
+                const rowContainer = document.createElement('div');
+                rowContainer.className = 'saved-item-row';
+
+                const topRow = document.createElement('div');
+                topRow.className = 'saved-item-top';
 
                 const nameSpan = document.createElement('span');
                 nameSpan.className = 'saved-item-name';
@@ -495,6 +734,26 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
                 const dateSpan = document.createElement('span');
                 dateSpan.className = 'saved-item-date';
                 dateSpan.textContent = row.updated_at ? row.updated_at.substring(5, 16) : '';
+
+                topRow.appendChild(nameSpan);
+                topRow.appendChild(dateSpan);
+                rowContainer.appendChild(topRow);
+
+                // Render label chips
+                const diagramLabels = labelsByDiagram[row.id] || [];
+                if (diagramLabels.length > 0) {
+                    const labelsDiv = document.createElement('div');
+                    labelsDiv.className = 'saved-item-labels';
+                    for (const dl of diagramLabels) {
+                        const chip = document.createElement('span');
+                        chip.className = 'label-chip';
+                        chip.style.backgroundColor = dl.color;
+                        chip.textContent = dl.name;
+                        chip.title = dl.name;
+                        labelsDiv.appendChild(chip);
+                    }
+                    rowContainer.appendChild(labelsDiv);
+                }
 
                 const deleteBtn = document.createElement('button');
                 deleteBtn.className = 'saved-item-delete';
@@ -506,8 +765,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
                 });
 
                 item.addEventListener('click', () => loadDiagram(row.id));
-                item.appendChild(nameSpan);
-                item.appendChild(dateSpan);
+                item.appendChild(rowContainer);
                 item.appendChild(deleteBtn);
                 savedList.appendChild(item);
             }

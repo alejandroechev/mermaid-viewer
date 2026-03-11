@@ -455,3 +455,161 @@ body {
     background-color: #d4e6f9;
     border-color: #3498db;
 }
+
+/* Label chips */
+.label-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 7px;
+    color: #fff;
+    white-space: nowrap;
+    cursor: default;
+    line-height: 1.4;
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.label-chip-remove {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    cursor: pointer;
+    font-size: 8px;
+    padding: 0 0 0 3px;
+    line-height: 1;
+}
+
+.label-chip-remove:hover {
+    color: #fff;
+}
+
+/* Label editor (below save form) */
+.label-editor {
+    padding: 6px 8px;
+    border-bottom: 1px solid #eee;
+    font-size: 9px;
+}
+
+.label-editor-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-bottom: 4px;
+    min-height: 14px;
+}
+
+.label-editor-add {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.label-editor-add input {
+    flex: 1;
+    padding: 3px 5px;
+    font-size: 8px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+    outline: none;
+}
+
+.label-editor-add input:focus {
+    border-color: #3498db;
+}
+
+.label-color-picker {
+    display: flex;
+    gap: 2px;
+    align-items: center;
+}
+
+.label-color-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1px solid #ccc;
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.label-color-swatch:hover {
+    transform: scale(1.2);
+}
+
+.label-color-swatch.selected {
+    border: 2px solid #333;
+    transform: scale(1.2);
+}
+
+/* Filter bar */
+.label-filter-bar {
+    display: none;
+    flex-wrap: wrap;
+    gap: 3px;
+    padding: 6px 8px;
+    border-bottom: 1px solid #eee;
+    align-items: center;
+}
+
+.label-filter-bar.visible {
+    display: flex;
+}
+
+.label-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 7px;
+    color: #fff;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+    line-height: 1.4;
+}
+
+.label-filter-chip:hover {
+    opacity: 0.8;
+}
+
+.label-filter-chip.active {
+    opacity: 1;
+}
+
+.label-filter-clear {
+    background: none;
+    border: none;
+    font-size: 8px;
+    color: #999;
+    cursor: pointer;
+    padding: 1px 4px;
+}
+
+.label-filter-clear:hover {
+    color: #e74c3c;
+}
+
+/* Label chips row inside saved items */
+.saved-item-labels {
+    display: flex;
+    gap: 2px;
+    flex-wrap: wrap;
+    margin-top: 2px;
+}
+
+.saved-item-row {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow: hidden;
+    min-width: 0;
+}
+
+.saved-item-top {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
