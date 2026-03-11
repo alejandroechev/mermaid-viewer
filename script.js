@@ -32,6 +32,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
     
     // Add copy button reference
     const copyButton = document.getElementById('copy-svg-button');
+    const exportPngButton = document.getElementById('export-png-button');
 
     // Saved diagrams panel elements
     const savedPanel = document.getElementById('saved-panel');
@@ -128,6 +129,54 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
         }
     }
 
+    // Function to export diagram as PNG
+    function exportAsPng() {
+        const svgElement = outputDiv.querySelector('svg');
+        if (!svgElement) return;
+
+        const svgClone = svgElement.cloneNode(true);
+        const bbox = svgElement.getBoundingClientRect();
+        const scale = 2; // 2x resolution for crisp export
+        const width = bbox.width * scale;
+        const height = bbox.height * scale;
+
+        svgClone.setAttribute('width', bbox.width);
+        svgClone.setAttribute('height', bbox.height);
+
+        const svgData = new XMLSerializer().serializeToString(svgClone);
+        const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(svgBlob);
+
+        const img = new Image();
+        img.onload = function () {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.scale(scale, scale);
+            ctx.drawImage(img, 0, 0);
+            URL.revokeObjectURL(url);
+
+            const pngName = (currentDiagramName || 'diagram') + '.png';
+            canvas.toBlob(function (blob) {
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = pngName;
+                a.click();
+                URL.revokeObjectURL(a.href);
+                exportPngButton.classList.add('flash');
+                setTimeout(() => exportPngButton.classList.remove('flash'), 500);
+            }, 'image/png');
+        };
+        img.onerror = function () {
+            URL.revokeObjectURL(url);
+            console.error('Failed to load SVG for PNG export');
+        };
+        img.src = url;
+    }
+
     // Panzoom instance
     let panzoomInstance;    // Function to render the diagram
     async function renderDiagram() {
@@ -215,6 +264,9 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
       // Add copy SVG button event listener
     if (copyButton) {
         copyButton.addEventListener('click', copySvgToClipboard);
+    }
+    if (exportPngButton) {
+        exportPngButton.addEventListener('click', exportAsPng);
     }
     
     // Theme toggle functionality

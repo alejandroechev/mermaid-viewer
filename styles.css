@@ -296,13 +296,15 @@ body {
     right: 10px;
     opacity: 0.3;
     transition: opacity 0.2s;
+    display: flex;
+    gap: 4px;
 }
 
 .diagram-controls:hover {
     opacity: 1;
 }
 
-#copy-svg-button {
+#copy-svg-button, #export-png-button {
     padding: 4px 8px;
     background-color: #3498db;
     color: white;
@@ -314,11 +316,11 @@ body {
     transition: opacity 0.2s;
 }
 
-#copy-svg-button:hover {
+#copy-svg-button:hover, #export-png-button:hover {
     opacity: 1;
 }
 
-#copy-svg-button.flash {
+#copy-svg-button.flash, #export-png-button.flash {
     background-color: #2ecc71;
 }
 
