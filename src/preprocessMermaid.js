@@ -14,7 +14,16 @@ export function preprocessMermaidCode(code) {
   // HTML tags commonly used in mermaid diagrams
   const VALID_HTML_TAG = /^\/?\s*(br\s*\/?|[bius]|sub|sup|em|strong)\s*$/i;
 
-  return code.replace(/<([^>]+)>/g, (match, inner) => {
+  // First: convert HTML entities for angle brackets to mermaid escapes.
+  // These would be decoded by mermaid internally, causing the same parse errors.
+  let result = code
+    .replace(/&lt;/g, '#lt;')
+    .replace(/&gt;/g, '#gt;')
+    .replace(/&#60;/g, '#lt;')
+    .replace(/&#62;/g, '#gt;');
+
+  // Then: escape raw angle brackets that aren't valid HTML tags or arrows
+  return result.replace(/<([^>]+)>/g, (match, inner) => {
     const trimmed = inner.trim();
 
     // Preserve valid HTML tags (<br/>, <b>, </b>, <i>, <em>, <strong>, etc.)

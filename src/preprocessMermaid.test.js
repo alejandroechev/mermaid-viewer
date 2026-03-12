@@ -119,3 +119,48 @@ describe('preprocessMermaidCode', () => {
     expect(result).toContain('Cosmos-->>SW');
   });
 });
+
+describe('preprocessMermaidCode – HTML entity handling', () => {
+  it('should convert &lt; and &gt; entities to mermaid escapes', () => {
+    const input = 'Conv->>Conv: Create Channel&lt;AudioFrame&gt;';
+    const result = preprocessMermaidCode(input);
+    expect(result).toBe('Conv->>Conv: Create Channel#lt;AudioFrame#gt;');
+  });
+
+  it('should handle &lt;/&gt; entities in multiple places', () => {
+    const input = `sequenceDiagram
+    Cosmos-->>SW: Vec&lt;PublicationSegment&gt;
+    Cosmos-->>SW: Vec&lt;Chunk&gt; (with byte offsets)`;
+    const result = preprocessMermaidCode(input);
+    expect(result).toContain('Vec#lt;PublicationSegment#gt;');
+    expect(result).toContain('Vec#lt;Chunk#gt;');
+  });
+
+  it('should handle mixed raw angle brackets and HTML entities', () => {
+    const input = `sequenceDiagram
+    A->>B: Channel<RawType>
+    B-->>A: Channel&lt;EntityType&gt;`;
+    const result = preprocessMermaidCode(input);
+    expect(result).toContain('Channel#lt;RawType#gt;');
+    expect(result).toContain('Channel#lt;EntityType#gt;');
+  });
+
+  it('should not double-escape already-correct #lt; escapes', () => {
+    const input = 'A->>B: Channel#lt;AudioFrame#gt;';
+    const result = preprocessMermaidCode(input);
+    expect(result).toBe('A->>B: Channel#lt;AudioFrame#gt;');
+  });
+
+  it('should handle numeric HTML entities &#60; and &#62;', () => {
+    const input = 'A->>B: Vec&#60;Item&#62;';
+    const result = preprocessMermaidCode(input);
+    expect(result).toBe('A->>B: Vec#lt;Item#gt;');
+  });
+
+  it('should preserve &lt;br/&gt; but NOT treat it as a line break', () => {
+    // &lt;br/&gt; is an escaped representation, not an actual <br/> tag
+    const input = 'A->>B: text &lt;br/&gt; more';
+    const result = preprocessMermaidCode(input);
+    expect(result).toContain('#lt;br/#gt;');
+  });
+});

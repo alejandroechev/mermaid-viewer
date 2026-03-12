@@ -161,6 +161,24 @@ test.describe('Angle bracket escaping – generic types render correctly', () =>
     await expectSuccess(page);
     await expectSvgText(page, 'Option<Value>');
   });
+
+  test('HTML entity &lt; &gt; angle brackets render correctly', async ({ page }) => {
+    await renderDiagram(page, `sequenceDiagram
+      A->>B: Create Channel&lt;AudioFrame&gt;
+      B-->>A: Vec&lt;PublicationSegment&gt;`);
+    await expectSuccess(page);
+    await expectSvgText(page, 'Channel<AudioFrame>');
+    await expectSvgText(page, 'Vec<PublicationSegment>');
+  });
+
+  test('mixed raw and HTML entity angle brackets in same diagram', async ({ page }) => {
+    await renderDiagram(page, `sequenceDiagram
+      A->>B: Raw<Type>
+      B-->>A: Entity&lt;Type&gt;`);
+    await expectSuccess(page);
+    await expectSvgText(page, 'Raw<Type>');
+    await expectSvgText(page, 'Entity<Type>');
+  });
 });
 
 // ---------------------------------------------------------------------------
