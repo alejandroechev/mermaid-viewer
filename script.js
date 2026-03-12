@@ -52,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
     let currentDiagramId = null;
     let currentDiagramName = null;
     let db = null; // SQLite database handle
+    let labelsAvailable = false; // Whether labels/diagram_labels tables exist
 
     // Label state
     const LABEL_COLORS = ['#3498db','#2ecc71','#e74c3c','#f39c12','#9b59b6','#1abc9c','#e67e22','#34495e'];
@@ -490,6 +491,26 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
             };
             // Enable foreign keys for CASCADE support
             try { await db.execute("PRAGMA foreign_keys = ON"); } catch (_) { /* PRAGMA may not be supported via plugin */ }
+
+            // Validate schema: check that all expected tables exist
+            try {
+                const tables = await db.select(
+                    "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('diagrams', 'labels', 'diagram_labels')"
+                );
+                const tableNames = new Set(tables.map(t => t.name));
+                if (!tableNames.has('diagrams')) {
+                    console.error('Schema validation failed: diagrams table missing. Rebuild the Tauri app to run pending migrations.');
+                    db = null;
+                    return;
+                }
+                labelsAvailable = tableNames.has('labels') && tableNames.has('diagram_labels');
+                if (!labelsAvailable) {
+                    console.warn('Label tables missing — label features disabled. Rebuild the Tauri app to run pending migrations.');
+                }
+            } catch (e) {
+                console.error('Schema validation query failed:', e);
+            }
+
             refreshSavedList();
             refreshFilterBar();
         } catch (e) {
@@ -599,6 +620,10 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
 
     // ===== Label Editor (shows labels for the current diagram) =====
     async function refreshLabelEditor() {
+        if (!labelsAvailable) {
+            labelEditor.style.display = 'none';
+            return;
+        }
         if (!currentDiagramId) {
             labelEditor.style.display = 'block';
             labelEditorChips.innerHTML = '<span style="color:#999;font-size:8px;">Guarda un diagrama para agregar etiquetas</span>';
@@ -636,7 +661,10 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
 
     // ===== Filter Bar =====
     async function refreshFilterBar() {
-        if (!db) return;
+        if (!db || !labelsAvailable) {
+            labelFilterBar.classList.remove('visible');
+            return;
+        }
         const allLabels = await getAllLabels();
         labelFilterBar.innerHTML = '';
 
@@ -734,6 +762,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
             }
         } catch (e) {
             console.error('Failed to load diagram:', e);
+            statusIndicator.className = 'status-indicator error';
         }
     }
 
@@ -747,14 +776,21 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
                 diagramNameInput.value = '';
                 labelEditor.style.display = 'none';
             }
-            // Clean up orphan labels
-            await db.execute(
-                "DELETE FROM labels WHERE NOT EXISTS (SELECT 1 FROM diagram_labels WHERE label_id = labels.id)"
-            );
+            // Clean up orphan labels (only if label tables exist)
+            if (labelsAvailable) {
+                try {
+                    await db.execute(
+                        "DELETE FROM labels WHERE NOT EXISTS (SELECT 1 FROM diagram_labels WHERE label_id = labels.id)"
+                    );
+                } catch (e) {
+                    console.warn('Orphan label cleanup failed:', e);
+                }
+            }
             refreshSavedList();
             refreshFilterBar();
         } catch (e) {
             console.error('Failed to delete diagram:', e);
+            statusIndicator.className = 'status-indicator error';
         }
     }
 
@@ -762,7 +798,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
         if (!db) return;
         try {
             let diagrams;
-            if (activeFilterLabelIds.size > 0) {
+            if (labelsAvailable && activeFilterLabelIds.size > 0) {
                 // Filter: show diagrams that have ANY of the selected labels
                 const placeholders = Array.from(activeFilterLabelIds).map(() => '?').join(',');
                 diagrams = await db.select(
@@ -776,15 +812,20 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
                 diagrams = await db.select("SELECT id, name, updated_at FROM diagrams ORDER BY updated_at DESC");
             }
 
-            // Fetch all diagram-label associations in one query for efficiency
-            const allDiagramLabels = await db.select(
-                "SELECT dl.diagram_id, l.id as label_id, l.name, l.color FROM diagram_labels dl INNER JOIN labels l ON dl.label_id = l.id ORDER BY l.name"
-            );
-            // Group labels by diagram_id
-            const labelsByDiagram = {};
-            for (const dl of allDiagramLabels) {
-                if (!labelsByDiagram[dl.diagram_id]) labelsByDiagram[dl.diagram_id] = [];
-                labelsByDiagram[dl.diagram_id].push(dl);
+            // Fetch label associations only if label tables exist
+            let labelsByDiagram = {};
+            if (labelsAvailable) {
+                try {
+                    const allDiagramLabels = await db.select(
+                        "SELECT dl.diagram_id, l.id as label_id, l.name, l.color FROM diagram_labels dl INNER JOIN labels l ON dl.label_id = l.id ORDER BY l.name"
+                    );
+                    for (const dl of allDiagramLabels) {
+                        if (!labelsByDiagram[dl.diagram_id]) labelsByDiagram[dl.diagram_id] = [];
+                        labelsByDiagram[dl.diagram_id].push(dl);
+                    }
+                } catch (e) {
+                    console.warn('Label query failed, showing diagrams without labels:', e);
+                }
             }
 
             savedList.innerHTML = '';
@@ -843,6 +884,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
             }
         } catch (e) {
             console.error('Failed to refresh saved list:', e);
+            statusIndicator.className = 'status-indicator error';
         }
     }
 
