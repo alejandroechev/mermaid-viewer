@@ -5,6 +5,7 @@
   "main": "script.js",
   "scripts": {
     "test": "vitest run",
+    "test:e2e": "playwright test",
     "start": "node server.js"
   },
   "repository": {
@@ -19,6 +20,7 @@
   },
   "homepage": "https://github.com/alejandroe_microsoft/mermaid-renderer#readme",
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tauri-apps/cli": "^2.10.0",
     "vitest": "^4.1.0"
   },
