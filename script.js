@@ -177,6 +177,20 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
         img.src = url;
     }
 
+    // Preprocess mermaid code to escape angle brackets that confuse the parser
+    // (e.g., generic types like Channel<AudioFrame>), preserving valid HTML tags and arrows.
+    function preprocessMermaidCode(code) {
+        if (!code) return code;
+        const VALID_HTML_TAG = /^\/?\s*(br\s*\/?|[bius]|sub|sup|em|strong)\s*$/i;
+        return code.replace(/<([^>]+)>/g, (match, inner) => {
+            const trimmed = inner.trim();
+            if (VALID_HTML_TAG.test(trimmed)) return match;
+            if (/^[-=.]+$/.test(trimmed)) return match;
+            if (trimmed.startsWith('!--')) return match;
+            return `#lt;${inner}#gt;`;
+        });
+    }
+
     // Panzoom instance
     let panzoomInstance;    // Function to render the diagram
     async function renderDiagram() {
@@ -201,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function () {    // Theme support
             // Create a container with an id for Mermaid
             const graphDiv = document.createElement('div');
             graphDiv.className = 'mermaid';
-            graphDiv.textContent = mermaidCode;
+            graphDiv.textContent = preprocessMermaidCode(mermaidCode);
             outputDiv.appendChild(graphDiv);
 
             // Render diagram
